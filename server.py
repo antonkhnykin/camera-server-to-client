@@ -5,7 +5,7 @@ import os
 import pyAesCrypt
 
 
-warnings.filterwarnings("ignore")
+#warnings.filterwarnings("ignore")
 app = Flask(__name__)
 
 
@@ -17,11 +17,11 @@ def result_photo():
 
     # We could adjust several cameras by its URLs
     if cameraId == '1':
-        camera = 0
+        camera = 'http://admin:_pass17_@192.168.30.229/ISAPI/Streaming/Channels/101/pictures?snapshotimagetype=JPEG'
     elif cameraId == '2':
-        camera = 0
+        camera = 'rtsp://admin:_pass17_@192.168.30.224:554/ISAPI/Streaming/Channels/101'
     else:
-        camera = 0
+        camera = 'rtsp://admin:_pass17_@192.168.30.229:554/ISAPI/Streaming/Channels/101'
 
     try:
         cap = cv2.VideoCapture(camera)
@@ -37,9 +37,10 @@ def result_photo():
             cap.release()
             return send_file(cwd + '/camera/photo._pg', download_name='photo._pg', as_attachment=True)
     except Exception as e:
+        print(str(e))
         s = str(e)
         return s
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', debug=False, port=4000)
+    app.run(host='0.0.0.0', debug=True, port=4000)
