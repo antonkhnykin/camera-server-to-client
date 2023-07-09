@@ -2,7 +2,10 @@ from flask import Flask, request, json
 import warnings
 from ultralytics import YOLO
 from ultralytics.yolo.v8.detect.predict import DetectionPredictor
-
+import json
+from base64 import b64decode
+import cv2
+from numpy import frombuffer
 
 model = YOLO('yolov8n.pt')
 warnings.filterwarnings("ignore")
@@ -26,15 +29,35 @@ def inPolygon(x, y, xp, yp):
     return c
 
 
-@app.route('/count', methods=['POST'])
+@app.route('/count', methods=['GET', 'POST'])
 def result():
     """Returning counter to client."""
     counter = 0
     data = json.loads(request.stream.read())
     Id = data.get('Id', None)
-    coords = data.get('coords', None)
+    coords = data.get('params', None)
 
-    counter = countPeople()
+    image = b64decode(data.get('img', None))
+    with open(r'image.jpg', 'wb') as x:
+        x.write(image)
+    image_cv2 = cv2.imread('image.jpg')
+
+    npImg = frombuffer(image)
+    decImg = cv2.imdecode(npImg, 1)
+    decImg_w = decImg.shape[1]
+    decImg_h = decImg.shape[0]
+
+    for coord in coords['coordinates']:
+        print(coord[0], coord[1], type(coord), type(coord[0]))
+        cv2.circle(image_cv2, (round(coord[0] * decImg_w / 100), round(coord[1] * decImg_h / 100)), 50, 0, 5)
+
+    cv2.imshow('img', image_cv2)
+    cv2.waitKey(0)
+    print(coords['coordinates'])
+
+
+    #counter = countPeople()
+    counter = ['1']
 
     response = app.response_class(
         response=json.dumps(counter),
