@@ -6,6 +6,7 @@ import json
 from base64 import b64decode
 import cv2
 from numpy import frombuffer
+from shapely.geometry import Point, Polygon
 
 model = YOLO('yolov8n.pt')
 warnings.filterwarnings("ignore")
@@ -29,6 +30,13 @@ def inPolygon(x, y, xp, yp):
     return c
 
 
+def checkIfInside(border, target):
+    # Create Point objects
+    p = Point(target[0], target[1])
+    poly = Polygon(border)
+    return poly.contains(p)
+
+
 @app.route('/count', methods=['GET', 'POST'])
 def result():
     """Returning counter to client."""
@@ -47,17 +55,36 @@ def result():
     decImg_w = decImg.shape[1]
     decImg_h = decImg.shape[0]
 
+    polygon_x = []
+    polygon_y = []
+    border = []
     for coord in coords['coordinates']:
-        print(coord[0], coord[1], type(coord), type(coord[0]))
-        cv2.circle(image_cv2, (round(coord[0] * decImg_w / 100), round(coord[1] * decImg_h / 100)), 50, 0, 5)
+        border.append((round(coord[0] * decImg_w / 100), round(coord[1] * decImg_h / 100)))
+        print(coord[0], coord[1])
+        polygon_x.append(coord[0])
+        polygon_y.append(coord[1])
+        cv2.circle(image_cv2, (round(coord[0] * decImg_w / 100), round(coord[1] * decImg_h / 100)), 10, (100, 200, 10), -1)
 
-    cv2.imshow('img', image_cv2)
-    cv2.waitKey(0)
     print(coords['coordinates'])
 
+    results = model.predict(source='image.jpg', show=True, imgsz=1920, save=True, conf=0.25, line_thickness=1,
+                            classes=[0])
 
-    #counter = countPeople()
-    counter = ['1']
+    # Check our person in polygon it or not
+    counter = 0
+    boxes = results[0].boxes
+    border.append(border[0])
+    print(border)
+    for box in boxes:  # returns one box
+        if checkIfInside(border, (box.xyxy[0][0].item(), box.xyxy[0][3].item())) and \
+            checkIfInside(border, (box.xyxy[0][2].item(), box.xyxy[0][3].item())):
+            print('1')
+            counter += 1
+        else:
+            print('0')
+
+    print(counter)
+
 
     response = app.response_class(
         response=json.dumps(counter),
